@@ -1,17 +1,18 @@
+# Necessary libraries and packages are imported
 from flask import Flask, render_template, request, redirect, url_for, session, Response
 import sqlite3
 import json
 from datetime import date
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import io
 
 app = Flask(__name__)
+# Defines the secret key for each session
 app.secret_key = 'secret_key'
 
-DB_path = 'D:\Programming Projects\Smart-Finance---Prototype\prototype.db'
+# Define database path
+DB_path = 'D:\Programming Projects\Smart-Finance\database.db'
 
+#Initialises the users table
 def init_db_users():
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
@@ -25,6 +26,7 @@ def init_db_users():
     conn.commit()
     conn.close()
 
+# Retrieves all user records in the database
 def get_all_users():
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
@@ -34,6 +36,7 @@ def get_all_users():
     conn.close()
     return users
 
+# Retrieves the username of each user in the database
 def get_all_usernames():
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
@@ -44,6 +47,7 @@ def get_all_usernames():
     conn.close()
     return usernames
 
+# Adds a user to the users table
 def add_user(username, password):
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
@@ -52,6 +56,7 @@ def add_user(username, password):
     conn.commit()
     conn.close()
 
+# Validates the inputted username
 def username_validation(username):
     usernames = get_all_usernames()
     if not username or username.isspace():
@@ -65,6 +70,7 @@ def username_validation(username):
     else:
         return ''
 
+# Validates the inputted password
 def password_validation(password):
     if not password or password.isspace():
         return "Password must not be empty or just whitespace"
@@ -75,6 +81,7 @@ def password_validation(password):
     else:
         return ''
 
+# Validates username and password and returns appropriate feedback to frontend
 def validation(username, password):
     if username_validation(username) or password_validation(password):
         return f'["{username_validation(username)}", "{password_validation(password)}"]'
@@ -94,10 +101,12 @@ def login():
 @app.route('/add_user', methods=['GET', 'POST'])
 def add_user_route():
     if request.method == 'POST':
+        # Retrieves the entered username and password
         username = request.form.get('username')
         password = request.form.get('password')
         result = validation(username, password)
         if result == '["successful"]':
+            # Adds the new user to the users table if they have passed validation
             add_user(username, password)
         return result
     else:
@@ -106,10 +115,12 @@ def add_user_route():
 @app.route('/verify_user', methods=['GET', 'POST'])
 def verify_user_route():
     if request.method == 'POST':
+        # Retrieves the entered username and password
         username = request.form.get('username')
         password = request.form.get('password')
         users = get_all_users()
         if (username, password) in users:
+            # This is so that once the user is logged in, their username can always be accessed
             session['username'] = username
             return '["/index.html"]'
         else:
@@ -119,12 +130,5 @@ def verify_user_route():
 
 if __name__ == "__main__":
     init_db_users()
-    init_db_monthly_budgets()
-    init_db_debts()
-    init_db_spending()
-    init_db_goals()
-    init_db_forecasts()
-    init_db_forecast_goals()
-    init_db_forecast_categories()
 
     app.run(debug=True)
