@@ -12,7 +12,7 @@ app.secret_key = 'secret_key'
 # Define database path
 DB_path = 'D:\Programming Projects\Smart-Finance\database.db'
 
-#Initialises the users table
+# Initialises the users table
 def init_db_users():
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
@@ -21,6 +21,128 @@ def init_db_users():
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
             password TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the monthly_budgets table
+def init_db_monthly_budgets():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS monthly_budgets (
+            budget_id INTEGER PRIMARY KEY,
+            username TEXT NOT NULL,
+            month_year TEXT NOT NULL,
+            income REAL NOT NULL,
+            spending_added_date TEXT NOT NULL,
+            FOREIGN KEY(username) REFERENCES users(username) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the debts table
+def init_db_debts():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS debts (
+            debt_id INTEGER PRIMARY KEY,
+            username TEXT NOT NULL,
+            debt_name TEXT NOT NULL,
+            debt_amount REAL NOT NULL,
+            interest_rate REAL NOT NULL,
+            FOREIGN KEY(username) REFERENCES users(username) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the spending table
+def init_db_spending():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS spending (
+            spending_id INTEGER PRIMARY KEY,
+            budget_id INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            amount REAL NOT NULL,
+            FOREIGN KEY(budget_id) REFERENCES monthly_budgets(budget_id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the goals table
+def init_db_goals():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS goals (
+            goal_id INTEGER PRIMARY KEY,
+            username TEXT NOT NULL,
+            deadline TEXT NOT NULL,
+            goal_name TEXT NOT NULL,
+            goal_amount REAL NOT NULL,
+            FOREIGN KEY(username) REFERENCES users(username) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the forecasts table
+def init_db_forecasts():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forecasts (
+            forecast_id INTEGER PRIMARY KEY,
+            budget_id INTEGER NOT NULL,
+            created_date TEXT NOT NULL,
+            spending_cap REAL NOT NULL,
+            FOREIGN KEY(budget_id) REFERENCES monthly_budgets(budget_id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the forecast_goals table
+def init_db_forecast_goals():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forecast_goals (
+            forecast_goal_id INTEGER PRIMARY KEY,
+            forecast_id INTEGER NOT NULL,
+            goal_name TEXT NOT NULL,
+            goal_amount REAL NOT NULL,
+            FOREIGN KEY(forecast_id) REFERENCES forecasts(forecast_id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialises the forecast_categories table
+def init_db_forecast_categories():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forecast_categories (
+            forecast_category_id INTEGER PRIMARY KEY,
+            forecast_id INTEGER NOT NULL,
+            category_name TEXT NOT NULL,
+            forecast_amount REAL NOT NULL,
+            FOREIGN KEY(forecast_id) REFERENCES forecasts(forecast_id) ON DELETE CASCADE
         )
     ''')
     conn.commit()
