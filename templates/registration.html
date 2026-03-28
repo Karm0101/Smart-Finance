@@ -16,10 +16,14 @@
     <h2>Registration</h2>
     <form>
       <!-- Labels to explain the use of each input box -->
-      <label for="username">Enter Username</label>
-      <input type="text" id="username" />
-      <label for="password">Enter Password</label>
-      <input type="text" id="password" />
+      <div id="username_div">
+        <label for="username">Enter Username</label>
+        <input type="text" id="username" />
+      </div>
+      <div id="password_div">
+        <label for="password">Enter Password</label>
+        <input type="text" id="password" />
+      </div>
       <button type="submit" onclick="registration_validation()">
         Register
       </button>
