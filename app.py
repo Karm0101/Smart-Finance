@@ -252,5 +252,12 @@ def verify_user_route():
 
 if __name__ == "__main__":
     init_db_users()
+    init_db_monthly_budgets()
+    init_db_debts()
+    init_db_spending()
+    init_db_goals()
+    init_db_forecasts()
+    init_db_forecast_goals()
+    init_db_forecast_categories()
 
     app.run(debug=True)
