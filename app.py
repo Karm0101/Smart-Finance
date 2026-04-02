@@ -178,6 +178,57 @@ def add_user(username, password):
     conn.commit()
     conn.close()
 
+# Adds a monthly budget to the monthly_budgets table
+def add_monthly_budget(income, month_year):
+    username = session['username']
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    # Retrieves the username and month_year of all submitted spending forms
+    cursor.execute('SELECT username, month_year FROM monthly_budgets')
+    budget_records = cursor.fetchall()
+    # If there already is a submitted spending form for the current month, it is replaced by the new one
+    if (username, month_year) in budget_records:
+        # Deletes the old budget form for the current month
+        cursor.execute(f'DELETE FROM monthly_budgets WHERE username="{username}" AND month_year="{month_year}"')
+    cursor.execute('INSERT INTO monthly_budgets (username, month_year, income, spending_added_date) VALUES (?, ?, ?, ?)', (username, month_year, income, date.today()))
+    conn.commit()
+    conn.close()
+
+# Adds the user's debts to the debts table
+def add_debts(debts):
+    username = session["username"]
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    for debt in debts:
+        cursor.execute(f'INSERT INTO debts (username, debt_name, debt_amount, interest_rate) VALUES (?, ?, ?, ?)', (session['username'], debt[0], debt[1], debt[2]))
+    conn.commit()
+    conn.close()
+
+# Adds the user's spending for each category in the spending_categories table
+def add_spending(spending_categories, month_year):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+    budget_id = cursor.fetchall()
+    for spending_category in spending_categories:
+        cursor.execute(f'INSERT INTO spending (budget_id, category, amount) VALUES (?, ?, ?)', (budget_id[0][0], spending_category[0], spending_category[1]))
+    conn.commit()
+    conn.close()
+
+# Adds the user's goals to the goals table
+def add_goals(goals):
+    username = session['username']
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    for goal in goals:
+        cursor.execute(f'INSERT INTO goals (username, deadline, goal_name, goal_amount) VALUES (?, ?, ?, ?)', (username, goal[2], goal[0], goal[1]))
+    conn.commit()
+    conn.close()
+
 # Validates the inputted username
 def username_validation(username):
     usernames = get_all_usernames()
@@ -210,6 +261,35 @@ def validation(username, password):
     else:
         return '["successful"]'
 
+# Retrieves the user's income for a specific month
+def retrieve_income(month_year):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT income FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+    income = cursor.fetchall()
+    conn.commit()
+    conn.close()
+
+    return income
+
+# Calculates the total spending for a specific month
+def calculate_total_spending(month_year):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+    budget_id = cursor.fetchall()
+    if budget_id:
+        budget_id = budget_id[0][0]
+    cursor.execute(f'SELECT amount FROM spending WHERE budget_id = "{budget_id}"')
+    all_spending = cursor.fetchall()
+    conn.commit()
+    conn.close()
+    # As the returned array contains tuples with commas, we have to select the value from each tuple
+    total_spending = sum(spending[0] for spending in all_spending)
+    return total_spending
+
 @app.route('/registration')
 @app.route('/registration.html')
 def registration():
@@ -219,6 +299,13 @@ def registration():
 @app.route('/login.html')
 def login():
     return render_template('login.html')
+
+@app.route('/')
+@app.route('/index.html')
+def index_page():
+    if 'username' in session:
+        return render_template('index.html', username=session['username'])
+    return redirect(url_for('login'))
 
 @app.route('/add_user', methods=['GET', 'POST'])
 def add_user_route():
@@ -249,6 +336,40 @@ def verify_user_route():
             return '["No matching account found", 1]'
     else:
         return redirect(url_for('index_page'))
+
+@app.route('/get_net_balance_reading', methods=['GET', 'POST'])
+def get_net_balance_reading():
+    if request.method == 'POST':
+        month_year = str(date.today())[:-3]
+
+        income = retrieve_income(month_year)
+        if income:
+            income = income[0][0]
+        else:
+            income = 0
+
+        total_spending = calculate_total_spending(month_year)
+
+        net_balance = income - total_spending
+        
+        return [net_balance]
+
+@app.route('/process_forms', methods=['GET', 'POST'])
+def process_forms_route():
+    if request.method == 'POST':
+        data = request.get_json()
+        budget_data = data['JSON_budget_data']
+        income_data = data['JSON_income_data']
+        goals_data = data['JSON_goals_data']
+        debt_data = data['JSON_debt_data']
+
+        month_year = str(date.today())[:-3]
+
+        add_monthly_budget(income_data, month_year)
+        add_debts(debt_data)
+        add_spending(budget_data, month_year)
+        add_goals(goals_data)
+        return '[]'
 
 if __name__ == "__main__":
     init_db_users()
