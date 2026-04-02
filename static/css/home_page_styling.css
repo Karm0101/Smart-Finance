@@ -1,0 +1,80 @@
+body {
+    background-color: #23304d;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+nav {
+    width: 98.9vw;
+    height: 50px;
+    background-color: #1feeea;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+.nav_item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid black;
+    width: 33vw;
+}
+h1 {
+    color: #1feeea;
+    text-align: center;
+}
+#balance_reading_div {
+    border: 2px solid black;
+    width: fit-content;
+    padding: 10px;
+    margin: 10px;
+}
+#forms_container {
+    position: relative;
+    border: 2px solid black;
+    width: fit-content;
+    padding: 20px;
+    background-color: white;
+}
+#submit_button {
+    position: absolute;
+    bottom: 11%;
+    right: 20%;
+    font-size: 20px;
+    background-color: aqua;
+}
+table, tr, th, td, caption {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 0.5rem;
+    width: 500px;
+}
+td {
+    overflow-wrap: anywhere;
+}
+#budget_form, #income_form, #goals_form, #debts_form {
+    margin: 20px;
+}
+#column_1 {
+    float: left;
+}
+#column_2 {
+    float: right;
+}
+input {
+    background-color: rgb(194, 194, 194);
+    border: 0px;
+    width: 100px;
+}
+#budget_form {
+    margin: 20px;
+}
+#logout_button {
+    color: 1feeea;
+    background-color: white;
+    padding: 10px;
+    font-size: 19px;
+}

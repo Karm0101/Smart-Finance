@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home prototype</title>
+    <!-- Links to CSS file for styling -->
+    <link rel="stylesheet" href="../static/css/home_page_styling.css" />
+  </head>
+  <body>
+    <header>
+      <!-- Consistent title for all pages on the website -->
+      <h1>Smart Finance</h1>
+      <!-- Navbar to allow users to navigate the site more easily  -->
+      <nav>
+        <div class="nav_item">
+          <a href="spending_forecasts.html">Spending Forecasts</a>
+        </div>
+        <div class="nav_item">
+          <a href="spending_insights.html">Spending Insights</a>
+        </div>
+        <div class="nav_item"><a href="money_pots.html">Money Pots</a></div>
+      </nav>
+    </header>
+    <!-- Net balance reading displayed to user -->
+    <div id="balance_reading_div">
+      <h1 id="net_balance_reading">(Net Balance Reading)</h1>
+    </div>
+    <form id="forms_container">
+      <!-- Areas of the form are divided into columns for better styling -->
+      <div id="column_1">
+        <div id="budget_form">
+          <h2>Budget:</h2>
+          <table id="budget_table">
+            <tr>
+              <th>Category</th>
+              <th>Amount</th>
+            </tr>
+            <tr>
+              <td>Housing</td>
+              <td><input id="housing" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Utilities</td>
+              <td><input id="utilities" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Food</td>
+              <td><input id="food" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Transportation</td>
+              <td><input id="transportation" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Healthcare</td>
+              <td><input id="healthcare" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Entertainment</td>
+              <td><input id="entertainment" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Shopping</td>
+              <td><input id="shopping" type="text" /></td>
+            </tr>
+            <tr>
+              <td>Gifts/donations</td>
+              <td><input id="gifts-donations" type="text" /></td>
+            </tr>
+          </table>
+          <!-- Button to add more categories to the spending table -->
+          <button onclick="add_category()">Add a category</button>
+        </div>
+        <div id="goals_form">
+          <h2>Goals:</h2>
+          <table id="goals_table">
+            <tr>
+              <th>Goal</th>
+              <th>Amount</th>
+              <th>Deadline</th>
+            </tr>
+          </table>
+          <!-- Button to add more goals to the goals table -->
+          <button onclick="add_goal()">Add a goal</button>
+        </div>
+      </div>
+      <div id="column_2">
+        <div id="income_form">
+          <h2>Income:</h2>
+          <p>My income for the month in question is/was:</p>
+          <label for="income">£</label>
+          <!-- Input box to enter income -->
+          <input id="income" type="text" />
+        </div>
+        <div id="debts_form">
+          <h2>Debt:</h2>
+          <table id="debt_table">
+            <tr>
+              <th>Debt</th>
+              <th>Amount</th>
+              <th>Interest Rate</th>
+            </tr>
+          </table>
+          <!-- Button to add more debts to the debts table -->
+          <button onclick="add_debt()">Add a debt</button>
+        </div>
+      </div>
+      <!-- Button to submit spending form -->
+      <button id="submit_button" type="submit" onclick="forms_submit()">
+        Submit forms
+      </button>
+    </form>
+    <!-- Button to log out of account -->
+    <br /><a id="logout_button" href="{{ url_for('login') }}">Logout</a>
+    <script src="../static/js/home_page_script.js"></script>
+  </body>
+</html>
