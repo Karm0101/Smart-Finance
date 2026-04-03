@@ -77,4 +77,10 @@ input {
     background-color: white;
     padding: 10px;
     font-size: 19px;
+    position: absolute;
+    right: 1%;
+    top: 3%;
+}
+button {
+    margin: 10px;
 }

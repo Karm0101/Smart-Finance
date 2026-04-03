@@ -11,6 +11,8 @@
     <header>
       <!-- Consistent title for all pages on the website -->
       <h1>Smart Finance</h1>
+      <!-- Button to log out of account -->
+      <a id="logout_button" href="{{ url_for('login') }}">Logout</a>
       <!-- Navbar to allow users to navigate the site more easily  -->
       <nav>
         <div class="nav_item">
@@ -111,8 +113,6 @@
         Submit forms
       </button>
     </form>
-    <!-- Button to log out of account -->
-    <br /><a id="logout_button" href="{{ url_for('login') }}">Logout</a>
     <script src="../static/js/home_page_script.js"></script>
   </body>
 </html>
