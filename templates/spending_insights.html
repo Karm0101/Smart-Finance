@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spending Insights</title>
+    <link rel="stylesheet" href="../static/css/spending_styling.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Smart Finance</h1>
+      <nav>
+        <div class="nav_item">
+          <a href="spending_forecasts.html">Spending Forecasts</a>
+        </div>
+        <div class="nav_item"><a href="index.html">Home Page</a></div>
+        <div class="nav_item"><a href="money_pots.html">Money Pots</a></div>
+      </nav>
+    </header>
+    <h1 id="page_title">Spending Insights</h1>
+    <div id="spending_insights_container">
+      <div id="pagination_container">
+        <button id="left_pagination"><</button>
+        <div id="pagination_date">(Current date)</div>
+        <button id="right_pagination">></button>
+      </div>
+      <h3 title="explanation">Total Spending: ⓘ</h3>
+      <div id="total_spending_display"></div>
+      <h3 title="explanation">Average Daily Spending: ⓘ</h3>
+      <div id="average_daily_spending_display"></div>
+      <table id="spending_insights_table">
+        <tr>
+          <th>Categories</th>
+          <th title="explanation">Total Spending per Category ⓘ</th>
+          <th title="explanation">
+            Percentage of Total Spending per Category ⓘ
+          </th>
+          <th title="explanation">Spending Change per Category ⓘ</th>
+        </tr>
+      </table>
+      <h3 title="explanation">Visual Aids: ⓘ</h3>
+      <h4>Total Spending per Category: ⓘ</h4>
+      <img
+        id="total_spending_per_category_image"
+        src="../static/images/placeholder_image.png"
+      />
+      <h4>Percentage of Total Spending per Category: ⓘ</h4>
+      <img
+        id="percentage_total_spending_image"
+        src="../static/images/placeholder_image.png"
+      />
+      <h4>Spending Change per Category: ⓘ</h4>
+      <img
+        id="spending_change_image"
+        src="../static/images/placeholder_image.png"
+      />
+    </div>
+    <script src="../static/js/spending_insights_script.js"></script>
+  </body>
+</html>
