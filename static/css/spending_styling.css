@@ -33,7 +33,7 @@ h1 {
 #spending_insights_container {
     position: relative;
     border: 2px solid black;
-    width: fit-content;
+    width: 1200px;
     padding: 20px 60px;
     background-color: white;
 }
@@ -42,7 +42,11 @@ table, tr, th, td, caption {
     border-collapse: collapse;
     padding: 0.5rem;
     width: 500px;
-    margin: 30px;
+    text-align: center;
+}
+table {
+    margin: auto;
+    margin-top: 30px;
 }
 td {
     overflow-wrap: anywhere;
@@ -53,6 +57,10 @@ td {
     border: 2px solid black;
     margin: 10px;
     margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
 }
 #pagination_container {
     display: flex;
