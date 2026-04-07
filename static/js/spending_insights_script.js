@@ -232,15 +232,28 @@ function add_categories_to_table(current_and_previous_spending, sum) {
     spending_differences = current_and_previous_spending[1]
 
     categories_and_amount = Object.fromEntries(categories_and_amount)
+    categories = Object.keys(categories_and_amount)
 
-    for(let i = 0; i < spending_differences.length; i++) {
-        // Calculates spending insights using retrieved information
-        category_name = categories[i]
-        category_amount = categories_and_amount[category_name].toFixed(2)
-        percentage_amount = (category_amount/sum*100).toFixed(2)
-        spending_difference = spending_differences[1][i].toFixed(2)
-        row = `<tr><td>${category_name}</td><td>${category_amount}</td><td>${percentage_amount}</td><td>${spending_difference}</td></tr>`
-        table.innerHTML += row
+    // If-statement used to decide whether to populate the spending difference column with N/A or with actual values
+    if(spending_differences !== 'False') {
+        for(let i = 0; i < categories.length; i++) {
+            category_name = categories[i]
+            category_amount = categories_and_amount[category_name].toFixed(2)
+            percentage_amount = (category_amount/sum*100).toFixed(2)
+            spending_difference = spending_differences[1][i].toFixed(2)
+            row = `<tr><td>${category_name}</td><td>${category_amount}</td><td>${percentage_amount}</td><td>${spending_difference}</td></tr>`
+            table.innerHTML += row
+        }
+    }
+    else {
+        for(let i = 0; i < Object.keys(categories_and_amount).length; i++) {
+            category_name = categories[i]
+            category_amount = categories_and_amount[category_name].toFixed(2)
+            percentage_amount = (category_amount/sum*100).toFixed(2)
+            spending_difference = 'N/A'
+            row = `<tr><td>${category_name}</td><td>${category_amount}</td><td>${percentage_amount}</td><td>${spending_difference}</td></tr>`
+            table.innerHTML += row
+        }
     }
 }
 // Decrements a date in the format YYYY-MM to the previous month
