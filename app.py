@@ -3,6 +3,10 @@ from flask import Flask, render_template, request, redirect, url_for, session, R
 import sqlite3
 import json
 from datetime import date
+import matplotlib
+# This renders plots to images rather than displaying them
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import io
 
 app = Flask(__name__)
@@ -261,6 +265,48 @@ def validation(username, password):
     else:
         return '["successful"]'
 
+# Retrieves the user's spending for a specific month
+def get_user_spending(month_year):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE month_year = "{month_year}" AND username = "{session["username"]}"')
+    budget_id = cursor.fetchall()
+    if not budget_id:
+        return False
+    cursor.execute(f'SELECT category, amount FROM spending WHERE budget_id = {budget_id[0][0]}')
+    categories = cursor.fetchall()
+
+    conn.commit()
+    conn.close()
+
+    return categories
+
+# Calculates the difference in amount spent on each category between a target month and the month before it
+def get_user_spending_differences(month_year, previous_month_year):
+    current_spending = get_user_spending(month_year)
+    previous_spending = get_user_spending(previous_month_year)
+    
+    # For a difference in spending to be calculated, there has to be a spending form for the target month or previous month
+    if not current_spending or not previous_spending:
+        return False
+
+    # There is no guarantee that the categories in each month are in the same order, as users may add their custom categories in different orders each time
+    # To get around this, the spending for each month is converted to a dictionary to access the amount for each category through key-value pairs
+    current_spending = {category:amount for category, amount in current_spending}
+    previous_spending = {category:amount for category, amount in previous_spending}
+
+    current_categories = []
+    spending_differences = []
+
+    for category in current_spending:
+        if previous_spending.get(category):
+            difference = current_spending[category] - previous_spending[category]
+            spending_differences.append(difference)
+            current_categories.append(category)
+    
+    return [current_categories, spending_differences]
+
 # Retrieves the user's income for a specific month
 def retrieve_income(month_year):
     conn = sqlite3.connect(DB_path)
@@ -370,6 +416,136 @@ def process_forms_route():
         add_spending(budget_data, month_year)
         add_goals(goals_data)
         return '[]'
+
+@app.route('/spending_insights')
+@app.route('/spending_insights.html')
+def spending_insights_route():
+    if 'username' in session:
+        return render_template('spending_insights.html')
+    return redirect(url_for('login'))
+
+@app.route('/generate_total_spending_plot/<month_year>', methods=['GET', 'POST'])
+def generate_total_spending_plot(month_year):
+    if request.method == 'POST':
+        all_spending = get_user_spending(month_year)
+
+        # If there is no spending to generate a plot for, no plot is generated
+        if not all_spending:
+            return ['False']
+
+        # Creates two separate lists to act as the axis
+        categories = []
+        spending = []
+
+        for category in all_spending:
+            categories.append(category[0])
+            spending.append(category[1])
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.set_title('Total Spending per Category')
+        ax.set_xlabel('Category')
+        ax.set_ylabel('Amount, £')
+        ax.bar(categories, spending, width=0.5)
+        
+        # Saves the generated plot to memory to be passed to the frontend.
+        img = io.BytesIO()
+        fig.savefig(img, format="png")
+        plt.close(fig)
+        img.seek(0)
+
+        return Response(img.getvalue(), mimetype="image/png")
+
+@app.route('/generate_percentage_total_spending_plot/<month_year>', methods=['GET', 'POST'])
+def generate_percentage_total_spending_plot(month_year):
+    if request.method == 'POST':
+        all_spending = get_user_spending(month_year)
+
+        # If there is no spending to generate a plot for, no plot is generated
+        if not all_spending:
+            return ['False']
+
+        # Creates two separate lists to act as the axis
+        categories = []
+        spending = []
+        sum = 0
+
+        for category in all_spending:
+            categories.append(category[0])
+            spending.append(category[1])
+            sum += category[1]
+        if sum == 0:
+            # This avoids dividing by 0
+            spending = [0 for item in spending]
+        else:
+            for i in range(len(spending)):
+                spending[i] = round(spending[i]/sum*100, 2)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.set_title('Percentage of Total Spending per Category')
+        ax.set_xlabel('Category')
+        ax.set_ylabel('Percentage, %')
+        ax.bar(categories, spending, width=0.5)
+                
+        # Saves the generated plot to memory to be passed to the frontend.
+        img = io.BytesIO()
+        fig.savefig(img, format="png")
+        plt.close(fig)
+        img.seek(0)
+
+        return Response(img.getvalue(), mimetype="image/png")
+
+@app.route('/generate_spending_change_plot/<month_year>/<previous_month_year>', methods=['GET', 'POST'])
+def generate_spending_change_plot(month_year, previous_month_year):
+    if request.method == 'POST':
+        user_spending_differences = get_user_spending_differences(month_year, previous_month_year)
+
+        if user_spending_differences:
+            current_categories = user_spending_differences[0]
+            spending_differences = user_spending_differences[1]
+        else:
+            # If there are no user spending differences, no plot is generated
+            return ['False']
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.set_title('Spending Change per Category')
+        ax.set_xlabel('Category')
+        ax.set_ylabel('Change, £')
+        ax.bar(current_categories, spending_differences, width=0.5)
+        
+        # Saves the generated plot to memory to be passed to the frontend.
+        img = io.BytesIO()
+        fig.savefig(img, format="png")
+        plt.close(fig)
+        img.seek(0)
+
+        return Response(img.getvalue(), mimetype="image/png")
+
+@app.route('/retrieve_sum/<month_year>', methods=['GET', 'POST'])
+def retrieve_sum(month_year):
+    spending = get_user_spending(month_year)
+
+    # If there are no spending for the target month, there is no sum to be returned
+    if not spending:
+        return ['False']
+
+    sum = 0
+    for category in spending:
+        sum += category[1]
+    
+    return [str(sum)]
+
+@app.route('/retrieve_current_and_previous_spending/<month_year>/<previous_month_year>', methods=['GET', 'POST'])
+def retrieve_current_and_previous_spending(month_year, previous_month_year):
+    if request.method == 'POST':
+        user_spending = get_user_spending(month_year)
+        user_spending_differences = get_user_spending_differences(month_year, previous_month_year)
+
+        if not user_spending:
+            return ['False']
+        elif not user_spending_differences:
+            return [user_spending, 'False']
+        else:
+            return [user_spending, user_spending_differences]
 
 if __name__ == "__main__":
     init_db_users()
