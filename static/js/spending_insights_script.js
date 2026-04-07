@@ -228,6 +228,27 @@ async function retrieve_current_and_previous_spending(month_year, previous_date)
 // Adds spending insights to a table
 function add_categories_to_table(current_and_previous_spending, sum) {
     const table = document.getElementById('spending_insights_table')
+    // Resets the table to get rid of any previous spending insights
+    table.innerHTML = `<table id="spending_insights_table">
+                            <tr>
+                            <th>Categories</th>
+                            <th
+                                title="It is the total amount you have spent on each category this month."
+                            >
+                                Total Spending per Category ⓘ
+                            </th>
+                            <th
+                                title="It is the amount you have spent on each category during this month as a percentage of the total spending."
+                            >
+                                Percentage of Total Spending per Category ⓘ
+                            </th>
+                            <th
+                                title="It is the difference in amount spent on each category between this month and the month before it."
+                            >
+                                Spending Change per Category ⓘ
+                            </th>
+                            </tr>
+                        </table>`
     categories_and_amount = current_and_previous_spending[0]
     spending_differences = current_and_previous_spending[1]
 
