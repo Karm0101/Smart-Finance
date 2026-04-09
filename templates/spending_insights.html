@@ -4,11 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spending Insights</title>
+    <!-- Links to CSS file for styling -->
     <link rel="stylesheet" href="../static/css/spending_styling.css" />
   </head>
   <body>
     <header>
+      <!-- Consistent title for all pages on the website -->
       <h1>Smart Finance</h1>
+      <!-- Navbar to allow users to navigate the site more easily  -->
       <nav>
         <div class="nav_item">
           <a href="spending_forecasts.html">Spending Forecasts</a>
@@ -18,22 +21,26 @@
       </nav>
     </header>
     <h1 id="page_title">Spending Insights</h1>
-    <div id="spending_insights_container">
+    <!-- Pagination buttons that allow the user to view different spending insights-->
+    <div id="white_container">
       <div id="pagination_container">
         <button id="left_pagination"><</button>
         <div id="pagination_date">YYYY-MM-DD</div>
         <button id="right_pagination">></button>
       </div>
+      <!-- Total spending reading displayed to user -->
       <h3 title="The total amount that you have spent during this month.">
         Total Spending: ⓘ
       </h3>
       <div id="total_spending_display"></div>
+      <!-- Average daily spending reading displayed to user -->
       <h3
         title="It is the average amount you have spent each day during this month."
       >
         Average Daily Spending: ⓘ
       </h3>
       <div id="average_daily_spending_display"></div>
+      <!-- Table containing all spending insights -->
       <table id="spending_insights_table">
         <tr>
           <th>Categories</th>
@@ -54,6 +61,7 @@
           </th>
         </tr>
       </table>
+      <!-- All plots are initially represented by a placeholder image -->
       <h3
         title="Diagrams display the information from the table above in visual form to aid understanding."
       >
