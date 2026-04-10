@@ -798,6 +798,7 @@ def receive_spending_forecast(month_year):
         cursor = conn.cursor()
         cursor.execute(f'SELECT spending_added_date FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
         date_added = cursor.fetchall()
+        # Finds the date that the last forecast for the next month was generated
 
         conn.commit()
         conn.close()
@@ -805,16 +806,20 @@ def receive_spending_forecast(month_year):
         if date_added:
             date_added = date_added[0][0]
             days_difference = (date(int(date_added[:4]), int(date_added[5:7]), int(date_added[8:10])) - date.today()).days
+        # If a forecast was generated after a spending was submitted, no new forecast is generated
+        # If a spending was submitted after a forecast was generated, a new forecast is generated
         else:
             days_difference = 0
 
         if days_difference <= 0:
+            # Generates a forecast
             forecasted_budget = calculate_spending_forecast()
             goals_targets = calculate_goals_targets()
             maximum_spending_target_and_savings = calculate_maximum_spending_target_and_savings(forecasted_budget, goals_targets)
             maximum_spending_target = maximum_spending_target_and_savings[0]
             savings = maximum_spending_target_and_savings[1]
 
+            # Stores the forecast in the database
             add_forecast(month_year, maximum_spending_target)
             forecast_id = get_forecast_id(month_year)
             add_forecast_goals(forecast_id, goals_targets)
@@ -823,6 +828,7 @@ def receive_spending_forecast(month_year):
 
             return [forecasted_budget, goals_targets, maximum_spending_target, savings]
         else:
+            # Retrieves a previously generated forecast
             forecast_id = get_forecast_id(month_year)
             forecasted_budget = get_forecasted_budget(forecast_id)
             maximum_spending_target = get_maximum_spending_target(forecast_id)
@@ -836,6 +842,7 @@ def target_feedback(maximum_spending_target, feedback):
     if request.method == 'POST':
         month_year = str(date.today())[:-3]
         maximum_spending_target = float(maximum_spending_target[1:])
+        # Depending on the user's feedback, the maximum spending target is adjusted
         if feedback == 'hard':
             new_maximum_spending_target = round(maximum_spending_target * 0.95, 2)
         else:

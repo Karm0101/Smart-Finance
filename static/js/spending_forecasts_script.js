@@ -119,5 +119,11 @@ function maximum_spending_target_feedback() {
     }
 }
 
+retrieve_forecast('2026-04')
+.then(data => {
+    forecasted_budget = data[0]
+    console.log(forecasted_budget)
+})
+
 // Calls the initial_setup function once the page loads
 document.addEventListener('DOMContentLoaded', initial_setup, false);
