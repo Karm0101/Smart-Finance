@@ -307,6 +307,237 @@ def get_user_spending_differences(month_year, previous_month_year):
     
     return [current_categories, spending_differences]
 
+# Retrieves the user's spending history
+def get_all_user_spending():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    # Retrieves all the budget ids associated with the user
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}"')
+    budget_ids = cursor.fetchall()
+    all_user_spending = []
+    for budget_id in budget_ids:
+        cursor.execute(f'SELECT category, amount FROM spending WHERE budget_id = {budget_id[0]}')
+        categories_and_amount = cursor.fetchall()
+        all_user_spending.append(categories_and_amount)
+    
+    return all_user_spending
+
+# Retrieves all of the user's goals
+def get_all_goals():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT goal_name, goal_amount, deadline FROM goals WHERE username = "{session["username"]}"')
+    goals = cursor.fetchall()
+    
+    return goals
+
+# Generates a forecasted spending for each of the user's spending categories
+def calculate_spending_forecast():
+    all_user_spending = get_all_user_spending()
+    all_spending_dict = []
+    for spending in all_user_spending:
+        # Turns each month's spending into a dictionary
+        # This is to easily retrieve a category's spending regardless of its order in its respective spending list
+        all_spending_dict.append({category:amount for category, amount in spending})
+
+    # Keeps a list of all spending categories that the user ever had
+    categories = []
+
+    for spending in all_spending_dict:
+        categories += (list(spending.keys()))
+
+    categories = list(set(categories)) # Removes all duplicate categories
+    # This is to keep track of all spending on a category
+    category_history = {category:[] for category in categories}
+    forecasted_spending = {category:0 for category in categories}
+
+    for category in categories:
+        for spending in all_spending_dict:
+            # Adds a category's spending to its history
+            category_history[category].append(spending.get(category, 0))
+    
+    # Applies a weighted moving average to each category
+    for category in category_history:
+        average = 0
+        for i in range(len(category_history[category])):
+            average += round((i+1)/len(category_history[category]) * category_history[category][i], 2)
+        forecasted_spending[category] = average
+
+    return forecasted_spending
+
+# Calculates the target for each of the user's goals
+def calculate_goals_targets():
+    all_goals = get_all_goals()
+    goals_targets = {}
+
+    for goal in all_goals:
+        current_date = date.today()
+        goal_deadline = goal[2]
+        days_left = (date(int(goal_deadline[:4]), int(goal_deadline[5:7]), int(goal_deadline[8:10])) - current_date).days
+        if days_left >  0:
+            # As the number of days left decreases, the urgency approaches 1
+            urgency = 1/days_left
+        else:
+            # If today is the deadline or the deadline has passed, then the highest urgency is assigned
+            # So, the user would have to pay it fully if they want to meet their goal
+            urgency = 1
+
+        target = urgency * goal[1]
+
+        goals_targets.update({goal[0]: target})
+            
+    return goals_targets
+
+# Adds the savings goal to forecasted_goals
+def add_savings(savings, forecast_id):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'INSERT INTO forecast_goals (forecast_id, goal_name, goal_amount) VALUES (?, ?, ?)', (forecast_id, 'savings', savings))
+    conn.commit()
+    conn.close()
+
+# Calculates a maximum spending target and savings in the forecast page
+def calculate_maximum_spending_target_and_savings(forecasted_budget, goals_targets):
+    total_forecasted_spending = sum(list(forecasted_budget.values())) + sum(list(goals_targets.values()))
+
+    # Aiming to spend 10% less than you expect to is a healthy budgeting goal 
+    maximum_spending_target = 0.9 * total_forecasted_spending
+    # Aiming to save (atleast) 10% of your spending is a good savings goal
+    savings = 0.1 * total_forecasted_spending
+
+    return [maximum_spending_target, savings]
+
+# Retrieves the forecast id associated with a specific month's spending
+def get_forecast_id(month_year):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+    budget_id = cursor.fetchall()
+    if budget_id:
+        budget_id = budget_id[0][0]
+
+        cursor.execute(f'SELECT forecast_id FROM forecasts WHERE budget_id = "{budget_id}"')
+        fetched_data = cursor.fetchall()
+        if fetched_data:
+            forecast_id = fetched_data[0][0]
+            return forecast_id
+    else:
+        return ''
+    conn.commit()
+    conn.close()
+
+# Retrieves the user's maximum spending target
+def get_maximum_spending_target(forecast_id):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT spending_cap FROM forecasts WHERE forecast_id = "{forecast_id}"')
+    spending_cap = cursor.fetchall()[0][0]
+
+    conn.commit()
+    conn.close()
+
+    return spending_cap
+
+# Retrieves the user's goal targets
+def get_goals_targets(forecast_id):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT goal_name, goal_amount FROM forecast_goals WHERE forecast_id = "{forecast_id}"')
+    goals_targets = cursor.fetchall()[0][0]
+
+    goals_targets = {goal_name:goal_amount for goal_name, goal_amount in goals_targets}
+
+    conn.commit()
+    conn.close()
+
+    return goals_targets
+
+# Retrieves the user's forecasted budget
+def get_forecasted_budget(forecast_id):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT category_name, forecast_amount FROM forecast_categories WHERE forecast_id = "{forecast_id}"')
+    forecasted_budget = cursor.fetchall()[0][0]
+
+    forecasted_budget = {category_name:forecast_amount for category_name, forecast_amount in forecasted_budget}
+
+    conn.commit()
+    conn.close()
+
+    return forecasted_budget
+
+# Retrieves the user's savings target
+def get_savings(forecast_id):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT goal_amount FROM forecast_goals WHERE forecast_id = "{forecast_id}" AND goal_name = "savings"')
+    savings = cursor.fetchall()
+
+    conn.commit()
+    conn.close()
+
+    return savings
+
+# Adds a forecast to forecasts
+def add_forecast(month_year, maximum_spending_taget):
+    date_today = date.today()
+
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+    budget_id = cursor.fetchall()
+    if budget_id:
+        budget_id = budget_id[0][0]
+        cursor.execute(f'INSERT INTO forecasts (budget_id, created_date, spending_cap) VALUES (?, ?, ?)', (budget_id, date_today, maximum_spending_taget))
+    conn.commit()
+    conn.close()
+
+# Adds a forecast goal to forecast_goals
+def add_forecast_goals(forecast_id, goals_targets):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    for goal in goals_targets:
+        cursor.execute(f'INSERT INTO forecast_goals (forecast_id, goal_name, goal_amount) VALUES (?, ?, ?)', (forecast_id, goal, goals_targets[goal]))
+
+    conn.commit()
+    conn.close()
+
+# Adds the forecasted spending for each category to forecast_categories
+def add_forecast_categories(forecast_id, forecasted_budget):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    for category in forecasted_budget:
+        cursor.execute(f'INSERT INTO forecast_categories (forecast_id, category_name, forecast_amount) VALUES (?, ?, ?)', (forecast_id, category, forecasted_budget[category]))
+
+    conn.commit()
+    conn.close()
+
+# Updates the user's maximum spending target
+def update_maximum_target(maximum_spending_target, month_year):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+    budget_id = cursor.fetchall()[0][0]
+
+    cursor.execute(f'UPDATE forecasts SET spending_cap = {maximum_spending_target} WHERE budget_id = {budget_id}')
+    conn.commit()
+    conn.close()
+
 # Retrieves the user's income for a specific month
 def retrieve_income(month_year):
     conn = sqlite3.connect(DB_path)
@@ -382,6 +613,11 @@ def verify_user_route():
             return '["No matching account found", 1]'
     else:
         return redirect(url_for('index_page'))
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('login'))
 
 @app.route('/get_net_balance_reading', methods=['GET', 'POST'])
 def get_net_balance_reading():
@@ -546,6 +782,67 @@ def retrieve_current_and_previous_spending(month_year, previous_month_year):
             return [user_spending, 'False']
         else:
             return [user_spending, user_spending_differences]
+
+@app.route('/spending_forecasts')
+@app.route('/spending_forecasts.html')
+def spending_forecasts_route():
+    if 'username' in session:
+        return render_template('spending_forecasts.html')
+    return redirect(url_for('login'))
+
+@app.route('/receive_spending_forecast/<month_year>', methods=['GET', 'POST'])
+def receive_spending_forecast(month_year):
+    if request.method == 'POST':
+        conn = sqlite3.connect(DB_path)
+        conn.execute('PRAGMA foreign_keys = 1')
+        cursor = conn.cursor()
+        cursor.execute(f'SELECT spending_added_date FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+        date_added = cursor.fetchall()
+
+        conn.commit()
+        conn.close()
+
+        if date_added:
+            date_added = date_added[0][0]
+            days_difference = (date(int(date_added[:4]), int(date_added[5:7]), int(date_added[8:10])) - date.today()).days
+        else:
+            days_difference = 0
+
+        if days_difference <= 0:
+            forecasted_budget = calculate_spending_forecast()
+            goals_targets = calculate_goals_targets()
+            maximum_spending_target_and_savings = calculate_maximum_spending_target_and_savings(forecasted_budget, goals_targets)
+            maximum_spending_target = maximum_spending_target_and_savings[0]
+            savings = maximum_spending_target_and_savings[1]
+
+            add_forecast(month_year, maximum_spending_target)
+            forecast_id = get_forecast_id(month_year)
+            add_forecast_goals(forecast_id, goals_targets)
+            add_savings(savings, forecast_id)
+            add_forecast_categories(forecast_id, forecasted_budget)
+
+            return [forecasted_budget, goals_targets, maximum_spending_target, savings]
+        else:
+            forecast_id = get_forecast_id(month_year)
+            forecasted_budget = get_forecasted_budget(forecast_id)
+            maximum_spending_target = get_maximum_spending_target(forecast_id)
+            goals_targets = get_goals_targets(forecast_id)
+            savings = get_savings(forecast_id)
+
+            return [forecasted_budget, goals_targets, maximum_spending_target, savings]
+
+@app.route('/target_feedback/<maximum_spending_target>/<feedback>', methods=['GET', 'POST'])
+def target_feedback(maximum_spending_target, feedback):
+    if request.method == 'POST':
+        month_year = str(date.today())[:-3]
+        maximum_spending_target = float(maximum_spending_target[1:])
+        if feedback == 'hard':
+            new_maximum_spending_target = round(maximum_spending_target * 0.95, 2)
+        else:
+            new_maximum_spending_target = round(maximum_spending_target * 1.05, 2)
+        
+        update_maximum_target(new_maximum_spending_target, month_year)
+        return [new_maximum_spending_target]
 
 if __name__ == "__main__":
     init_db_users()
