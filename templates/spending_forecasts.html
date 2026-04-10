@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spending Forecasts</title>
+    <!-- Links to CSS file for styling -->
+    <link rel="stylesheet" href="../static/css/spending_styling.css" />
+  </head>
+  <body>
+    <header>
+      <!-- Consistent title for all pages on the website -->
+      <h1>Smart Finance</h1>
+      <!-- Navbar to allow users to navigate the site more easily -->
+      <nav>
+        <div class="nav_item">
+          <a href="spending_insights.html">Spending Insights</a>
+        </div>
+        <div class="nav_item"><a href="index.html">Home Page</a></div>
+        <div class="nav_item"><a href="money_pots.html">Money Pots</a></div>
+      </nav>
+    </header>
+    <h1 id="page_title">Spending Forecasts</h1>
+    <div id="white_container">
+      <!-- Maximum spending target displayed to user -->
+      <div id="maximum_spending_target_container">
+        <h2>Maximum Spending Target:</h2>
+        <div id="maximum_spending_target_display">Placeholder</div>
+        <form>
+          <!-- Form for user to give feedback on maximum spending target -->
+          <h3>Feedback:</h3>
+          <input id="target_easy_button" type="radio" name="feedback" />
+          <label for="target_easy_button">Target is too easy</label>
+          <input id="target_hard_button" type="radio" name="feedback" />
+          <label for="target_hard_button">Target is too hard</label>
+          <br />
+          <input
+            id="submit_feedback_button"
+            type="submit"
+            onclick="maximum_spending_target_feedback()"
+            value="Submit feedback"
+          />
+        </form>
+      </div>
+      <h2>Forecasted budget:</h2>
+      <div id="forecast_container">
+        <!-- Table of forecasted spending -->
+        <table id="budget">
+          <tr>
+            <th>Category</th>
+            <th>Amount</th>
+          </tr>
+        </table>
+        <!-- Table of goal targets -->
+        <table id="goals">
+          <tr>
+            <th>Goal</th>
+            <th>Amount</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <script src="../static/js/spending_forecasts_script.js"></script>
+  </body>
+</html>
