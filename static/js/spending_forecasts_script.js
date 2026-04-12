@@ -4,7 +4,6 @@ function initial_setup() {
     let forecasted_budget
     let goals_targets
     let maximum_spending_target
-    let savings
 
     let current_date = new Date().toISOString().split('T')[0].slice(0, 7);
     retrieve_forecast(current_date)
@@ -12,10 +11,9 @@ function initial_setup() {
             forecasted_budget = data[0]
             goals_targets = data[1]
             maximum_spending_target = data[2].toFixed(2)
-            savings = data[3]
             display_maximum_spending_target(maximum_spending_target)
             display_forecasted_budget(forecasted_budget)
-            display_goals_targets(goals_targets, savings)
+            display_goals_targets(goals_targets)
         })
 }
 // Retrieves the forecast for the next month
@@ -55,18 +53,14 @@ function display_forecasted_budget(forecasted_budget) {
     }
 }
 // Displays the goal targets by adding them to the table
-function display_goals_targets(goals_targets, savings) {
+function display_goals_targets(goals_targets) {
     table = document.getElementById('goals')
     goals = Object.keys(goals_targets)
     targets = Object.values(goals_targets)
 
-    // Since savings is a goal that the user will be set a target for, it is added to the goal targets list
-    goals.push('Savings')
-    targets.push(savings)
-
     for(let i = 0; i < goals.length; i++) {
         goal_name = goals[i]
-        target = targets[i]
+        target = Number(targets[i])
 
         row = `<tr><td>${goal_name}</td><td>${target.toFixed(2)}</td></tr>`
         table.innerHTML += row
@@ -118,12 +112,6 @@ function maximum_spending_target_feedback() {
         .catch(error => console.log(error))
     }
 }
-
-retrieve_forecast('2026-04')
-.then(data => {
-    forecasted_budget = data[0]
-    console.log(forecasted_budget)
-})
 
 // Calls the initial_setup function once the page loads
 document.addEventListener('DOMContentLoaded', initial_setup, false);
