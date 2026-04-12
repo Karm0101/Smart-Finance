@@ -321,6 +321,9 @@ def get_all_user_spending():
         categories_and_amount = cursor.fetchall()
         all_user_spending.append(categories_and_amount)
     
+    conn.commit()
+    conn.close()
+
     return all_user_spending
 
 # Retrieves all of the user's goals
@@ -331,6 +334,9 @@ def get_all_goals():
     cursor.execute(f'SELECT goal_name, goal_amount, deadline FROM goals WHERE username = "{session["username"]}"')
     goals = cursor.fetchall()
     
+    conn.commit()
+    conn.close()
+
     return goals
 
 # Generates a forecasted spending for each of the user's spending categories
@@ -449,7 +455,7 @@ def get_goals_targets(forecast_id):
     conn.execute('PRAGMA foreign_keys = 1')
     cursor = conn.cursor()
     cursor.execute(f'SELECT goal_name, goal_amount FROM forecast_goals WHERE forecast_id = "{forecast_id}"')
-    goals_targets = cursor.fetchall()[0][0]
+    goals_targets = cursor.fetchall()
 
     goals_targets = {goal_name:goal_amount for goal_name, goal_amount in goals_targets}
 
@@ -464,7 +470,7 @@ def get_forecasted_budget(forecast_id):
     conn.execute('PRAGMA foreign_keys = 1')
     cursor = conn.cursor()
     cursor.execute(f'SELECT category_name, forecast_amount FROM forecast_categories WHERE forecast_id = "{forecast_id}"')
-    forecasted_budget = cursor.fetchall()[0][0]
+    forecasted_budget = cursor.fetchall()
 
     forecasted_budget = {category_name:forecast_amount for category_name, forecast_amount in forecasted_budget}
 
@@ -473,21 +479,10 @@ def get_forecasted_budget(forecast_id):
 
     return forecasted_budget
 
-# Retrieves the user's savings target
-def get_savings(forecast_id):
-    conn = sqlite3.connect(DB_path)
-    conn.execute('PRAGMA foreign_keys = 1')
-    cursor = conn.cursor()
-    cursor.execute(f'SELECT goal_amount FROM forecast_goals WHERE forecast_id = "{forecast_id}" AND goal_name = "savings"')
-    savings = cursor.fetchall()
-
-    conn.commit()
-    conn.close()
-
-    return savings
+# Removed the get_savings function
 
 # Adds a forecast to forecasts
-def add_forecast(month_year, maximum_spending_taget):
+def add_forecast(month_year, maximum_spending_target):
     date_today = date.today()
 
     conn = sqlite3.connect(DB_path)
@@ -497,7 +492,9 @@ def add_forecast(month_year, maximum_spending_taget):
     budget_id = cursor.fetchall()
     if budget_id:
         budget_id = budget_id[0][0]
-        cursor.execute(f'INSERT INTO forecasts (budget_id, created_date, spending_cap) VALUES (?, ?, ?)', (budget_id, date_today, maximum_spending_taget))
+        forecast_id = get_forecast_id(month_year)
+        cursor.execute(f'DELETE FROM forecasts WHERE forecast_id = "{forecast_id}"')
+        cursor.execute(f'INSERT INTO forecasts (forecast_id, budget_id, created_date, spending_cap) VALUES (?, ?, ?, ?)', (forecast_id, budget_id, date_today, maximum_spending_target))
     conn.commit()
     conn.close()
 
@@ -506,6 +503,9 @@ def add_forecast_goals(forecast_id, goals_targets):
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
     cursor = conn.cursor()
+
+    # Deletes old goal targets to avoid the difficulty of updating them
+    cursor.execute(f'DELETE FROM forecast_goals WHERE forecast_id = "{forecast_id}"')
 
     for goal in goals_targets:
         cursor.execute(f'INSERT INTO forecast_goals (forecast_id, goal_name, goal_amount) VALUES (?, ?, ?)', (forecast_id, goal, goals_targets[goal]))
@@ -518,6 +518,9 @@ def add_forecast_categories(forecast_id, forecasted_budget):
     conn = sqlite3.connect(DB_path)
     conn.execute('PRAGMA foreign_keys = 1')
     cursor = conn.cursor()
+
+    # Deletes old forecast to avoid the difficult of updating them
+    cursor.execute(f'DELETE FROM forecast_categories WHERE forecast_id = "{forecast_id}"')
 
     for category in forecasted_budget:
         cursor.execute(f'INSERT INTO forecast_categories (forecast_id, category_name, forecast_amount) VALUES (?, ?, ?)', (forecast_id, category, forecasted_budget[category]))
@@ -796,22 +799,27 @@ def receive_spending_forecast(month_year):
         conn = sqlite3.connect(DB_path)
         conn.execute('PRAGMA foreign_keys = 1')
         cursor = conn.cursor()
-        cursor.execute(f'SELECT spending_added_date FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
-        date_added = cursor.fetchall()
+        cursor.execute(f'SELECT spending_added_date, budget_id FROM monthly_budgets WHERE username = "{session["username"]}" AND month_year = "{month_year}"')
+        data = cursor.fetchall()
+
         # Finds the date that the last forecast for the next month was generated
+        cursor.execute(f'SELECT created_date FROM forecasts WHERE budget_id = "{data[0][1]}"')
+        created_date = cursor.fetchall()
 
         conn.commit()
         conn.close()
 
-        if date_added:
-            date_added = date_added[0][0]
-            days_difference = (date(int(date_added[:4]), int(date_added[5:7]), int(date_added[8:10])) - date.today()).days
         # If a forecast was generated after a spending was submitted, no new forecast is generated
         # If a spending was submitted after a forecast was generated, a new forecast is generated
+        if data and created_date:
+            date_added = data[0][0]
+            created_date = created_date[0][0]
+            days_difference = (date(int(date_added[:4]), int(date_added[5:7]), int(date_added[8:10]))
+            - date(int(created_date[:4]), int(created_date[5:7]), int(created_date[8:10]))).days
         else:
             days_difference = 0
 
-        if days_difference <= 0:
+        if days_difference >= 0:
             # Generates a forecast
             forecasted_budget = calculate_spending_forecast()
             goals_targets = calculate_goals_targets()
@@ -826,16 +834,15 @@ def receive_spending_forecast(month_year):
             add_savings(savings, forecast_id)
             add_forecast_categories(forecast_id, forecasted_budget)
 
-            return [forecasted_budget, goals_targets, maximum_spending_target, savings]
+            return [forecasted_budget, goals_targets, maximum_spending_target]
         else:
             # Retrieves a previously generated forecast
             forecast_id = get_forecast_id(month_year)
             forecasted_budget = get_forecasted_budget(forecast_id)
             maximum_spending_target = get_maximum_spending_target(forecast_id)
             goals_targets = get_goals_targets(forecast_id)
-            savings = get_savings(forecast_id)
 
-            return [forecasted_budget, goals_targets, maximum_spending_target, savings]
+            return [forecasted_budget, goals_targets, maximum_spending_target]
 
 @app.route('/target_feedback/<maximum_spending_target>/<feedback>', methods=['GET', 'POST'])
 def target_feedback(maximum_spending_target, feedback):
