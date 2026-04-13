@@ -479,8 +479,6 @@ def get_forecasted_budget(forecast_id):
 
     return forecasted_budget
 
-# Removed the get_savings function
-
 # Adds a forecast to forecasts
 def add_forecast(month_year, maximum_spending_target):
     date_today = date.today()
@@ -569,6 +567,99 @@ def calculate_total_spending(month_year):
     # As the returned array contains tuples with commas, we have to select the value from each tuple
     total_spending = sum(spending[0] for spending in all_spending)
     return total_spending
+
+# Retrieves all of the user's debts
+def retrieve_all_debts():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    cursor.execute(f'SELECT debt_name, debt_amount FROM debts WHERE username = "{session["username"]}"')
+    all_debts = cursor.fetchall()
+    if all_debts:
+        # Turns the 2D list of all debts into a dictionary
+        all_debts = {debt_name:debt_amount for debt_name, debt_amount in all_debts}
+
+    conn.commit()
+    conn.close()
+
+    return all_debts
+
+# Calculates the user's total savings debt
+def get_total_savings_debt():
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    cursor.execute(f'SELECT budget_id FROM monthly_budgets WHERE username = "{session["username"]}"')
+    budget_ids = cursor.fetchall()
+    forecast_ids = []
+
+    for budget_id in budget_ids:
+        # Retrieve forecast_id to retrieve all of the user's savings target
+        cursor.execute(f'SELECT forecast_id FROM forecasts WHERE budget_id = "{budget_id[0]}"')
+        forecast_id = cursor.fetchall()
+        if forecast_id:
+            forecast_id = forecast_id[0][0]
+            forecast_ids.append(forecast_id)
+
+    total_savings_debt = 0
+
+    for forecast_id in forecast_ids:
+        cursor.execute(f'SELECT goal_amount FROM forecast_goals WHERE forecast_id = "{forecast_id}" AND goal_name = "savings"')
+        # Sums up all the savings target
+        saving = sum(map(sum, cursor.fetchall()))
+        # Rounded to two decimal places due to it representing money
+        total_savings_debt += round(float(saving), 2)
+        
+    conn.commit()
+    conn.close()
+
+    return total_savings_debt
+
+# Updates the user's total savings debt
+def update_total_savings_debt(total_savings_debt):
+    # A new savings is added that reduces or increases the total savings debt to the updated value
+    previous_total_saving_debt = get_total_savings_debt()
+    difference = round(float(total_savings_debt[1]) - previous_total_saving_debt, 2)
+
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    # The artificial savings target is added to the latest forecast
+    cursor.execute(f'SELECT forecast_id FROM forecast_goals')
+    forecast_ids = cursor.fetchall()
+    forecast_id = forecast_ids[len(forecast_ids)-1][0]
+
+    cursor.execute(f'INSERT INTO forecast_goals (forecast_id, goal_name, goal_amount) VALUES (?, ?, ?)', (forecast_id, "savings", difference))
+
+    conn.commit()
+    conn.close()
+
+# Updates the user's goals
+def update_goals(goals):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    for goal in goals:
+        cursor.execute(f'UPDATE goals SET goal_amount = {goal[1]} WHERE goal_name = "{goal[0]}" AND username = "{session["username"]}"')
+
+    conn.commit()
+    conn.close()
+
+# Updates the user's debts
+def update_debts(debts):
+    conn = sqlite3.connect(DB_path)
+    conn.execute('PRAGMA foreign_keys = 1')
+    cursor = conn.cursor()
+
+    for debt in debts:
+        cursor.execute(f'UPDATE debts SET debt_amount = {debt[1]} WHERE debt_name = "{debt[0]}" AND username = "{session["username"]}"')
+
+    conn.commit()
+    conn.close()
 
 @app.route('/registration')
 @app.route('/registration.html')
@@ -857,6 +948,44 @@ def target_feedback(maximum_spending_target, feedback):
         
         update_maximum_target(new_maximum_spending_target, month_year)
         return [new_maximum_spending_target]
+
+@app.route('/money_pots')
+@app.route('/money_pots.html')
+def money_post_route():
+    if 'username' in session:
+        return render_template('money_pots.html')
+    return redirect(url_for('login'))
+
+@app.route('/retrieve_money_pots', methods=['GET', 'POST'])
+def retrieve_money_pots_route():
+    if request.method == 'POST':
+        all_debts = retrieve_all_debts()
+        all_goals = get_all_goals()
+        total_savings_debt = get_total_savings_debt()
+
+        return [all_debts, all_goals, total_savings_debt]
+
+@app.route('/update_money_pots', methods=['GET', 'POST'])
+def update_money_pots_route():
+    if request.method == 'POST':
+        data = request.get_json()
+        goals = []
+        debts = []
+
+        update_total_savings_debt(data[0])
+        
+        # Since the money pots are classified by the frontend by type, the received array is iterated through
+        # And values are sorted into the correct array (goals or debts)
+        for element in data:
+            if element[2] == 'debt':
+                debts.append(element)
+            elif element[2] == 'goal':
+                goals.append(element)
+
+        update_goals(goals)
+        update_debts(debts)
+
+        return []
 
 if __name__ == "__main__":
     init_db_users()
