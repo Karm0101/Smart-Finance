@@ -101,3 +101,21 @@ label {
     flex-direction: row;
     gap: 30px;
 }
+#pots_container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 50px;
+}
+#submit_changes_button {
+    background-color: #1feeea;
+    font-size: 15px;
+    width: fit-content;
+    padding: 10px;
+    margin: auto;
+    border: 1px solid black;
+    font-weight: bold;
+}
+#submit_changes_button:hover {
+    cursor: pointer;
+}
