@@ -41,14 +41,14 @@ async function retrieve_money_pots() {
 }
 // Displays the user's total savings debt as a money pot
 function display_total_savings_debt(total_savings_debt) {
-    element = `<div id="total_savings_debt" class="savings"><img src="../static/images/money_pots_picture.png" alt="Money pot" />
+    element = `<div id="total_savings_debt" class="money_pot savings"><img src="../static/images/money_pots_picture.png" alt="Money pot" />
     <p>total_savings_debt</p><input id="input_total_savings_debt" type="text" value="${total_savings_debt}"></div>`
     pots_container.innerHTML += element
 }
 // Displays all of the user's debts as money pots
 function display_all_debts(all_debts) {
     Object.keys(all_debts).forEach((debt) => {
-        element = `<div id="${debt}" class="debt"><img src="../static/images/money_pots_picture.png" alt="Money pot" />
+        element = `<div id="${debt}" class="money_pot debt"><img src="../static/images/money_pots_picture.png" alt="Money pot" />
         <p>${debt}</p><input id="input_${debt}" type="text" value="${all_debts[debt]}"></div>`
         pots_container.innerHTML += element
     })
@@ -56,7 +56,7 @@ function display_all_debts(all_debts) {
 // Displays all of the user's goals as money pots
 function display_all_goals(all_goals) {
     for(let i = 0; i < all_goals.length; i++) {
-        element = `<div id="${all_goals[i][0]}" class="goal"><img src="../static/images/money_pots_picture.png" alt="Money pot" />
+        element = `<div id="${all_goals[i][0]}" class="money_pot goal"><img src="../static/images/money_pots_picture.png" alt="Money pot" />
         <p>${all_goals[i][0]}</p><input id="input_${all_goals[i][0]}" type="text" value="${all_goals[i][1]}"></div>`
         pots_container.innerHTML += element
     }

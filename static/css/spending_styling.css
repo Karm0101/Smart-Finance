@@ -119,3 +119,11 @@ label {
 #submit_changes_button:hover {
     cursor: pointer;
 }
+.money_pot {
+    border: 2px solid #23304d;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
